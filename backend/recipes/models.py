@@ -166,6 +166,9 @@ class ShoppingCart(models.Model):
             )
         ]
 
+    def __str__(self):
+        return f'{self.user} имеет в корзине: {self.recipe}'
+
 
 class Favorite(models.Model):
     """ Модель избранного. """
@@ -190,3 +193,6 @@ class Favorite(models.Model):
                 name='user_favorite_unique'
             )
         ]
+
+    def __str__(self):
+        return f"{self.user} нравятся: {self.recipe.name}"
