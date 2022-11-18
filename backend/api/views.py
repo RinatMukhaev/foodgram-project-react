@@ -2,17 +2,18 @@ from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
-                            ShoppingCart, Tag)
-
 from rest_framework import status, viewsets
+from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.decorators import action
+
+from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
+                            ShoppingCart, Tag)
 from users.models import Subscription, User
 
 from .filters import IngredientFilter, RecipeFilter
+from .mixins import CreateDeleteViewSet
 from .pagination import CustomPagination
 from .permissions import IsAuthorOrAdminOrReadOnly
 from .serializers import (CreateRecipeSerializer, FavoriteSerializer,
@@ -43,8 +44,7 @@ class SubscribeView(APIView):
 
     def delete(self, request, id):
         author = get_object_or_404(User, id=id)
-        if Subscription.objects.filter(
-           user=request.user, author=author).exists():
+        if request.follower.filter(author=author).exists():
             subscription = get_object_or_404(
                 Subscription, user=request.user, author=author
             )
@@ -105,64 +105,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return context
 
     @action(
-        detail=True,
-        methods=['POST', 'DELETE'],
-        url_path='favorite',
-        permission_classes=[IsAuthenticated],
-    )
-    def favorite(self, request, pk=None):
-        recipe = get_object_or_404(Recipe, id=pk)
-        user = request.user
-        if request.method == 'POST':
-            if Favorite.objects.filter(user=user, recipe=recipe).exists():
-                return Response(
-                    {'error': 'Такой рецепт уже есть в избанном'},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            favorite = Favorite.objects.create(user=user, recipe=recipe)
-            serializer = FavoriteSerializer(
-                favorite, context={'request': request})
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-        if request.method == 'DELETE':
-            favorite = Favorite.objects.filter(user=user, recipe=recipe)
-            if favorite.exists():
-                favorite.delete()
-                return Response(status=status.HTTP_204_NO_CONTENT)
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
-
-    @action(
-        detail=True,
-        methods=['POST', 'DELETE'],
-        url_path='shopping_cart',
-        permission_classes=[IsAuthenticated],
-    )
-    def shopping_cart(self, request, pk=None):
-        recipe = get_object_or_404(Recipe, id=pk)
-        user = request.user
-        if request.method == 'POST':
-            if ShoppingCart.objects.filter(user=user, recipe=recipe).exists():
-                return Response(
-                    {'error': 'Такой рецепт уже есть в списке'},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            shoping_cart = ShoppingCart.objects.create(user=user,
-                                                       recipe=recipe)
-            serializer = ShoppingCartSerializer(
-                shoping_cart, context={'request': request}
-            )
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        if request.method == 'DELETE':
-            delete_shoping_cart = ShoppingCart.objects.filter(
-                user=user, recipe=recipe)
-            if delete_shoping_cart.exists():
-                delete_shoping_cart.delete()
-                return Response(status=status.HTTP_204_NO_CONTENT)
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
-
-    @action(
         detail=False,
         methods=['GET'],
         url_path='download_shopping_cart',
@@ -188,3 +130,40 @@ class RecipeViewSet(viewsets.ModelViewSet):
         )
         response['Content-Disposition'] = f'attachment; filename="{file}.pdf"'
         return response
+
+
+class BaseFavoriteShoppingCartViewSet(CreateDeleteViewSet):
+    """ Обработка любимых рецептов и модели корзины. """
+
+    permission_classes = [IsAuthenticated, ]
+
+    def create(self, request, *args, **kwargs):
+        recipe_id = int(self.kwargs['recipes_id'])
+        recipe = get_object_or_404(Recipe, id=recipe_id)
+        self.model.objects.create(
+            user=request.user, recipe=recipe)
+        return Response(status=status.HTTP_201_CREATED)
+
+    def delete(self, request, *args, **kwargs):
+        recipe_id = self.kwargs['recipes_id']
+        user_id = request.user.id
+        object = get_object_or_404(
+            self.model, user__id=user_id, recipe__id=recipe_id)
+        object.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ShoppingCartViewSet(BaseFavoriteShoppingCartViewSet):
+    """ Обработка модели корзины. """
+
+    serializer_class = ShoppingCartSerializer
+    queryset = ShoppingCart.objects.all()
+    model = ShoppingCart
+
+
+class FavoriteViewSet(BaseFavoriteShoppingCartViewSet):
+    """ Обработка любимых рецептов моделей. """
+
+    serializer_class = FavoriteSerializer
+    queryset = Favorite.objects.all()
+    model = Favorite
