@@ -1,5 +1,4 @@
 from django.contrib import admin
-
 from foodgram.settings import EMPTY
 
 from .models import (Favorite, Ingredient, Recipe, RecipeIngredient,
@@ -35,10 +34,7 @@ class RecipeAdmin(admin.ModelAdmin):
     )
 
     def favorites(self, obj):
-        recipe = obj['recipe']
-        if obj.favorites.filter(recipe=recipe).exists():
-            return obj.favorites.all().count()
-        return 0
+        return Favorite.objects.filter(recipe=obj).count()
 
 
 @admin.register(ShoppingCart)

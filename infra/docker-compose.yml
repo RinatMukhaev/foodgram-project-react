@@ -22,7 +22,7 @@ services:
       dockerfile: Dockerfile
     volumes:
       - static_value:/app/static/
-      - media_value:/app/media/recipes/
+      - media_value:/app/media/
     depends_on:
       - db
     env_file:

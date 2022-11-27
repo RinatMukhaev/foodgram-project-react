@@ -1,14 +1,14 @@
 from django.db.models import Sum
 from django.http import HttpResponse
-from django.shortcuts import get_list_or_404, get_object_or_404
+from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import status, viewsets
-from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.response import Response
-
 from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
                             ShoppingCart, Tag)
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
+from rest_framework.generics import ListAPIView
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
 from users.models import Subscription, User
 
 from .filters import IngredientFilter, RecipeFilter
@@ -17,19 +17,15 @@ from .pagination import CustomPagination
 from .permissions import IsAuthorOrAdminOrReadOnly
 from .serializers import (CreateRecipeSerializer, FavoriteSerializer,
                           IngredientSerializer, RecipeSerializer,
-                          ShoppingCartSerializer, SubscriptionSerializer,
-                          TagSerializer)
+                          ShoppingCartSerializer, ShowSubscriptionsSerializer,
+                          SubscriptionSerializer, TagSerializer)
 
 
 class SubscribeViewSet(GetCreateDeleteViewSet):
     """ Операция подписки/отписки. """
 
     permission_classes = [IsAuthenticated, ]
-    pagination_class = CustomPagination
     serializer_class = SubscriptionSerializer
-
-    def get_queryset(self):
-        return get_list_or_404(User, author__user=self.request.user)
 
     def create(self, request, *args, **kwargs):
         user_id = self.kwargs.get('users_id')
@@ -45,6 +41,21 @@ class SubscribeViewSet(GetCreateDeleteViewSet):
             Subscription, user__id=user_id, author__id=author_id)
         subscribe.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ShowSubscriptionsView(ListAPIView):
+    """ Отображение подписок пользователя. """
+    permission_classes = [IsAuthenticated, ]
+    pagination_class = CustomPagination
+
+    def get(self, request):
+        user = request.user
+        queryset = User.objects.filter(author__user=user)
+        page = self.paginate_queryset(queryset)
+        serializer = ShowSubscriptionsSerializer(
+            page, many=True, context={'request': request}
+        )
+        return self.get_paginated_response(serializer.data)
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -95,7 +106,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         url_path='download_shopping_cart',
         permission_classes=[IsAuthenticated],
     )
-    def download_shopping_cart(request):
+    def download_shopping_cart(self, request):
         ingredient_list = "Cписок покупок:"
         ingredients = RecipeIngredient.objects.filter(
             recipe__shopping_cart__user=request.user

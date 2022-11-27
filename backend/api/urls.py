@@ -2,7 +2,8 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from .views import (FavoriteViewSet, IngredientViewSet, RecipeViewSet,
-                    ShoppingCartViewSet, SubscribeViewSet, TagViewSet)
+                    ShoppingCartViewSet, ShowSubscriptionsView,
+                    SubscribeViewSet, TagViewSet)
 
 app_name = 'api'
 
@@ -30,7 +31,7 @@ urlpatterns = [
     ),
     path(
         'users/subscriptions/',
-        SubscribeViewSet.as_view({'get': 'list'}),
+        ShowSubscriptionsView.as_view(),
         name='subscriptions'
     ),
     path('auth/', include('djoser.urls.authtoken')),
