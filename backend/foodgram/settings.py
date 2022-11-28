@@ -1,4 +1,5 @@
 import os
+from os import environ
 
 from dotenv import load_dotenv
 
@@ -10,7 +11,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', default='q-)#gtwcp$f2#mig!lm+!@^0g242qiq34b
 
 DEBUG = os.getenv('DEBUG', default=True)
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS')
+ALLOWED_HOSTS = environ['ALLOWED_HOSTS']
 
 INSTALLED_APPS = [
     'users.apps.UsersConfig',
