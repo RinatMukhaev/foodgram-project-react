@@ -1,5 +1,4 @@
 import os
-from os import environ
 
 from dotenv import load_dotenv
 
@@ -9,9 +8,9 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 SECRET_KEY = os.getenv('SECRET_KEY', default='q-)#gtwcp$f2#mig!lm+!@^0g242qiq34b&z2%&x79k9_!g+0z')
 
-DEBUG = os.getenv('DEBUG', default=True)
+DEBUG = os.getenv('DEBUG', default=False)
 
-ALLOWED_HOSTS = environ['ALLOWED_HOSTS']
+ALLOWED_HOSTS = [os.environ.get('ALLOWED_HOSTS')]
 
 INSTALLED_APPS = [
     'users.apps.UsersConfig',
