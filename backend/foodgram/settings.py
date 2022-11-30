@@ -10,7 +10,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', default='q-)#gtwcp$f2#mig!lm+!@^0g242qiq34b
 
 DEBUG = os.getenv('DEBUG', default=True)
 
-ALLOWED_HOSTS = ['178.154.202.96']
+ALLOWED_HOSTS = ['51.250.9.76']
 
 INSTALLED_APPS = [
     'users.apps.UsersConfig',
@@ -129,4 +129,4 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-# 1
+# 1 2
