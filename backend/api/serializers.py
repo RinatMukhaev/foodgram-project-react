@@ -238,14 +238,30 @@ class ShowFavoriteSerializer(serializers.ModelSerializer):
 class ShoppingCartSerializer(serializers.ModelSerializer):
     """ Сериализатор для списка покупок. """
 
+    user = serializers.IntegerField(source='user.id')
+    recipe = serializers.IntegerField(source='recipe.id')
+    
     class Meta:
         model = ShoppingCart
         fields = ['user', 'recipe']
 
-    def to_representation(self, instance):
-        return ShowFavoriteSerializer(instance.recipe, context={
-            'request': self.context.get('request')
-        }).data
+    def validate(self, data):
+        user = data['user']['id']
+        recipe = data['recipe']['id']
+        if ShoppingCart.objects.filter(user=user, recipe__id=recipe).exists():
+            raise serializers.ValidationError(
+                {
+                    'errors': 'рецепт уже в корзине'
+                }
+            )
+        return {"user": User.objects.get(pk=user),
+                "recipe": Recipe.objects.get(pk=recipe)}
+
+    def create(self, validated_data):
+        user = validated_data['user']
+        recipe = validated_data['recipe']
+        ShoppingCart.objects.get_or_create(user=user, recipe=recipe)
+        return validated_data
 
 
 class FavoriteSerializer(serializers.ModelSerializer):
