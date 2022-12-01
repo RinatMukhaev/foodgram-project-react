@@ -14,10 +14,10 @@
 [![Yandex.Cloud](https://img.shields.io/badge/-Yandex.Cloud-464646?style=flat&logo=Yandex.Cloud&logoColor=56C0C0&color=008080)](https://cloud.yandex.ru/)
 
 ### Адрес проекта
-http://178.154.202.96/
+http://51.250.9.76/
 
 ### Адрес для аминистратора
-http://178.154.202.96/admin/
+http://51.250.9.76/admin/
 
 login: admin@admin.ru
 password: admin753

@@ -5,14 +5,12 @@ from django_filters.rest_framework import DjangoFilterBackend
 from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
                             ShoppingCart, Tag)
 from rest_framework import status, viewsets
-from rest_framework.decorators import action
-from rest_framework.generics import ListAPIView
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from users.models import Subscription, User
 
 from .filters import IngredientFilter, RecipeFilter
-from .mixins import GetCreateDeleteViewSet
 from .pagination import CustomPagination
 from .permissions import IsAuthorOrAdminOrReadOnly
 from .serializers import (CreateRecipeSerializer, FavoriteSerializer,
@@ -21,41 +19,44 @@ from .serializers import (CreateRecipeSerializer, FavoriteSerializer,
                           SubscriptionSerializer, TagSerializer)
 
 
-class SubscribeViewSet(GetCreateDeleteViewSet):
-    """ Операция подписки/отписки. """
-
-    permission_classes = [IsAuthenticated, ]
-    serializer_class = SubscriptionSerializer
-
-    def create(self, request, *args, **kwargs):
-        user_id = self.kwargs.get('users_id')
-        user = get_object_or_404(User, id=user_id)
-        Subscription.objects.create(
-            user=request.user, author=user)
-        return Response(status=status.HTTP_201_CREATED)
-
-    def delete(self, request, *args, **kwargs):
-        author_id = self.kwargs['users_id']
-        user_id = request.user.id
-        subscribe = get_object_or_404(
-            Subscription, user__id=user_id, author__id=author_id)
-        subscribe.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def subscriptions_list(request):
+    """
+    Вывод списка подписок.
+    """
+    subscriptions = User.objects.filter(following__user=request.user)
+    paginator = CustomPagination()
+    page = paginator.paginate_queryset(subscriptions, request=request)
+    serializer = ShowSubscriptionsSerializer(
+        page, many=True, context={'request': request}
+    )
+    return paginator.get_paginated_response(serializer.data)
 
 
-class ShowSubscriptionsView(ListAPIView):
-    """ Отображение подписок пользователя. """
-    permission_classes = [IsAuthenticated, ]
-    pagination_class = CustomPagination
-
-    def get(self, request):
-        user = request.user
-        queryset = User.objects.filter(author__user=user)
-        page = self.paginate_queryset(queryset)
-        serializer = ShowSubscriptionsSerializer(
-            page, many=True, context={'request': request}
+@api_view(['POST', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def subscriptions_detail(request, id):
+    """
+    Добавление, удаление подписки.
+    """
+    author = get_object_or_404(User, id=id)
+    if request.method == 'POST':
+        data = {
+            'user': request.user.id,
+            'author': author.id
+        }
+        serializer = SubscriptionSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    if Subscription.objects.filter(user=request.user, author=author).exists():
+        subscription = get_object_or_404(
+            Subscription, user=request.user, author=author
         )
-        return self.get_paginated_response(serializer.data)
+        subscription.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    return Response(status=status.HTTP_400_BAD_REQUEST)
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):

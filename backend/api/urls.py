@@ -1,8 +1,8 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from .views import (IngredientViewSet, RecipeViewSet, ShowSubscriptionsView,
-                    SubscribeViewSet, TagViewSet)
+from .views import (IngredientViewSet, RecipeViewSet, TagViewSet,
+                    subscriptions_detail, subscriptions_list)
 
 app_name = 'api'
 
@@ -14,14 +14,14 @@ router.register('tags', TagViewSet, basename='tags')
 
 urlpatterns = [
     path(
-        'users/<users_id>/subscribe/',
-        SubscribeViewSet.as_view({'post': 'create', 'delete': 'delete'}),
-        name='subscribe'
+        'users/subscriptions/',
+        subscriptions_list,
+        name='subscriptions'
     ),
     path(
-        'users/subscriptions/',
-        ShowSubscriptionsView.as_view(),
-        name='subscriptions'
+        'users/<int:id>/subscribe/',
+        subscriptions_detail,
+        name='subscribe_detail'
     ),
     path('auth/', include('djoser.urls.authtoken')),
     path('', include('djoser.urls')),
