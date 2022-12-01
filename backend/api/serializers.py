@@ -43,10 +43,9 @@ class CustomUserSerializer(UserSerializer):
 
     def get_is_subscribed(self, obj):
         request = self.context.get('request')
-        user = self.context['request'].user
         if is_request_none_or_from_anonymous_user(request):
             return False
-        return Subscription.objects.filter(user=user, author=obj).exists()
+        return request.user.follower.filter(author=obj).exists()
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -283,10 +282,9 @@ class ShowSubscriptionsSerializer(serializers.ModelSerializer):
 
     def get_is_subscribed(self, obj):
         request = self.context.get('request')
-        user = self.context['request'].user
         if is_request_none_or_from_anonymous_user(request):
             return False
-        return obj.author.filter(user=user).exists()
+        return request.user.follower.filter(author=obj).exists()
 
     def get_recipes(self, obj):
         request = self.context.get('request')
@@ -297,7 +295,8 @@ class ShowSubscriptionsSerializer(serializers.ModelSerializer):
         if limit:
             recipes = recipes[:int(limit)]
         return ShowFavoriteSerializer(
-            recipes, many=True, context={'request': request}).data
+            recipes, many=True
+        ).data
 
     def get_recipes_count(self, obj):
         return obj.recipes.all().count()
@@ -308,7 +307,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Subscription
-        fields = ['user', 'author']
+        fields = ('user', 'author')
         validators = [
             UniqueTogetherValidator(
                 queryset=Subscription.objects.all(),
