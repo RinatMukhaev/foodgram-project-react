@@ -240,7 +240,7 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
 
     user = serializers.IntegerField(source='user.id')
     recipe = serializers.IntegerField(source='recipe.id')
-    
+
     class Meta:
         model = ShoppingCart
         fields = ['user', 'recipe']
