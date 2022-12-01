@@ -243,7 +243,7 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ShoppingCart
-        fields = ['user', 'recipe']
+        fields = '__all__'
 
     def validate(self, data):
         user = data['user']['id']
